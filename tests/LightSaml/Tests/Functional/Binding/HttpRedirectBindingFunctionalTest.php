@@ -27,27 +27,28 @@ class HttpRedirectBindingFunctionalTest extends BaseTestCase
         $request->setRelayState($expectedRelayState);
         $request->setDestination($expectedDestination);
 
-        $biding = new HttpRedirectBinding();
+        $binding = new HttpRedirectBinding();
 
         $eventDispatcherMock = $this->getEventDispatcherMock();
         $eventDispatcherMock->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function ($name, GenericEvent $event) {
+            ->willReturnCallback(function (GenericEvent $event, $name) {
                 $this->assertEquals(Events::BINDING_MESSAGE_SENT, $name);
                 $this->assertNotEmpty($event->getSubject());
                 $doc = new \DOMDocument();
                 $doc->loadXML($event->getSubject());
                 $this->assertEquals('AuthnRequest', $doc->firstChild->localName);
+                return $event;
             });
 
-        $biding->setEventDispatcher($eventDispatcherMock);
-        $this->assertSame($eventDispatcherMock, $biding->getEventDispatcher());
+        $binding->setEventDispatcher($eventDispatcherMock);
+        $this->assertSame($eventDispatcherMock, $binding->getEventDispatcher());
 
         $messageContext = new MessageContext();
         $messageContext->setMessage($request);
 
         /** @var RedirectResponse $response */
-        $response = $biding->send($messageContext);
+        $response = $binding->send($messageContext);
 
         $this->assertInstanceOf('Symfony\Component\HttpFoundation\RedirectResponse', $response);
 
@@ -95,13 +96,13 @@ class HttpRedirectBindingFunctionalTest extends BaseTestCase
 
         $request = $this->getAuthnRequest();
 
-        $biding = new HttpRedirectBinding();
+        $binding = new HttpRedirectBinding();
 
         $messageContext = new MessageContext();
         $messageContext->setMessage($request);
 
         /** @var RedirectResponse $response */
-        $response = $biding->send($messageContext, $expectedDestination);
+        $response = $binding->send($messageContext, $expectedDestination);
 
         $this->assertInstanceOf('Symfony\Component\HttpFoundation\RedirectResponse', $response);
 
@@ -122,12 +123,13 @@ class HttpRedirectBindingFunctionalTest extends BaseTestCase
         $eventDispatcherMock = $this->getEventDispatcherMock();
         $eventDispatcherMock->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function ($name, GenericEvent $event) {
+            ->willReturnCallback(function (GenericEvent $event, $name) {
                 $this->assertEquals(Events::BINDING_MESSAGE_RECEIVED, $name);
                 $this->assertNotEmpty($event->getSubject());
                 $doc = new \DOMDocument();
                 $doc->loadXML($event->getSubject());
                 $this->assertEquals('AuthnRequest', $doc->firstChild->localName);
+                return $event;
             });
 
         $binding->setEventDispatcher($eventDispatcherMock);
